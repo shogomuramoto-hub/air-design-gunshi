@@ -2,8 +2,11 @@ import streamlit as st
 import numpy as np
 import scipy.stats as stats
 import matplotlib.pyplot as plt
-import japanize_matplotlib
 import requests
+
+# 【修正ポイント】japanize_matplotlibを使わず、標準のフォント設定を使用
+# Streamlit CloudのLinux環境でも文字化けしにくい設定にします
+plt.rcParams['font.family'] = 'sans-serif'
 
 # 1. ファーストビュー設定
 st.set_page_config(page_title="Air Design 軍師", layout="centered")
@@ -52,11 +55,9 @@ if st.session_state['analyzed']:
     conversions = np.array([d["cvs"] for d in input_data])
     cpcs = np.array([d["cpc"] for d in input_data])
     
-    # 統計計算
     safe_clicks = np.where(clicks == 0, 1, clicks)
     cvrs = conversions / safe_clicks
     
-    # ベイズサンプリング
     samples = 20000
     sim_cvrs = np.array([stats.beta(1+c, 1+cl-c).rvs(samples) for c, cl in zip(conversions, clicks)])
     sim_profits = (sim_cvrs * profit_per_cv) - cpcs[:, np.newaxis]
@@ -65,13 +66,11 @@ if st.session_state['analyzed']:
     best_indices = np.argmax(sim_profits, axis=0)
     probs_best = [np.mean(best_indices == i) for i in range(n_variants)]
     
-    # 信頼度（簡易z-score）
     idx1, idx2 = (np.argsort(cvrs)[-1], np.argsort(cvrs)[-2]) if n_variants > 1 else (0,0)
     p_pool = (conversions[idx1] + conversions[idx2]) / (clicks[idx1] + clicks[idx2] + 1e-10)
     se = np.sqrt(p_pool * (1 - p_pool) * (1/safe_clicks[idx1] + 1/safe_clicks[idx2]) + 1e-10)
     reliability_score = min(100, stats.norm.cdf(abs(cvrs[idx1] - cvrs[idx2]) / se) * 100) if se > 0 else 0
     
-    # 損失リスク
     max_profits = np.max(sim_profits, axis=0)
     risk_per_click = np.mean(np.maximum(max_profits - sim_profits[current_best_idx], 0))
     monthly_risk_yen = risk_per_click * (monthly_budget / cpcs[current_best_idx])
@@ -81,8 +80,11 @@ if st.session_state['analyzed']:
     
     fig, ax = plt.subplots(figsize=(8, 4))
     for i in range(n_variants):
-        ax.hist(sim_cvrs[i], bins=50, alpha=0.5, label=f"{names[i]} (勝率:{probs_best[i]:.1%})")
+        ax.hist(sim_cvrs[i], bins=50, alpha=0.5, label=f"{names[i]} (Win Rate:{probs_best[i]:.1%})")
     ax.legend()
+    # グラフ内の日本語を避けるため英語にしていますが、後ほど日本語化も可能です
+    ax.set_xlabel("Conversion Rate")
+    ax.set_ylabel("Frequency")
     st.pyplot(fig)
 
     # 4. リード獲得の壁
@@ -102,7 +104,5 @@ if st.session_state['analyzed']:
         
         if submitted:
             if email and company:
-                # Zapier連携（URLがあれば有効化）
-                # requests.post("YOUR_ZAPIER_URL", json={"email": email, "company": company})
                 st.success(f"✅ ありがとうございます！{email} 宛に詳細レポートを送付します。")
                 st.balloons()
