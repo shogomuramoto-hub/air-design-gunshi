@@ -4,159 +4,112 @@ import scipy.stats as stats
 import matplotlib.pyplot as plt
 import time
 
-# --- 1. UIカスタム設定（CSS） ---
-st.set_page_config(page_title="Air Design Gunshi", layout="wide")
+# --- 1. UIカスタム（さらに直感的に） ---
+st.set_page_config(page_title="ABテスト軍師 | 損得の判定", layout="centered")
 
 st.markdown("""
     <style>
-    /* 全体の背景とフォント */
-    .main { background-color: #0e1117; color: #ffffff; }
-    
-    /* ヘッダーの高級感 */
-    .header-box {
-        background: linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%);
-        padding: 40px;
-        border-radius: 15px;
-        text-align: center;
-        margin-bottom: 30px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    }
-    
-    /* 入力カードの装飾 */
-    .input-card {
-        background-color: #1f2937;
-        padding: 25px;
-        border-radius: 12px;
-        border: 1px solid #374151;
-    }
-    
-    /* 判定結果のカード */
-    .result-card {
-        background: #ffffff;
-        color: #111827;
+    .main { background-color: #f8fafc; color: #1e293b; }
+    .stNumberInput { border-radius: 8px; }
+    .decision-card {
         padding: 30px;
         border-radius: 15px;
-        border-left: 8px solid #3b82f6;
+        margin-bottom: 25px;
+        text-align: center;
     }
+    .status-go { background-color: #dcfce7; border: 2px solid #22c55e; color: #166534; }
+    .status-wait { background-color: #fef9c3; border: 2px solid #eab308; color: #854d0e; }
+    .status-stop { background-color: #fee2e2; border: 2px solid #ef4444; color: #991b1b; }
     
-    /* ボタンの高級感 */
+    /* ボタンを大きく、力強く */
     .stButton>button {
-        background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        font-weight: bold;
-        border-radius: 8px;
-        transition: 0.3s;
-    }
-    .stButton>button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.4);
+        width: 100%;
+        height: 3em;
+        font-size: 1.5em !important;
+        background: #1e3a8a !important;
+        border-radius: 50px !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. ファーストビュー ---
-st.markdown("""
-    <div class="header-box">
-        <h1 style="color: #f8fafc; font-size: 2.8em; margin-bottom: 10px;">Air Design 軍師</h1>
-        <p style="color: #cbd5e1; font-size: 1.2em;">そのABテストに、プロの『終止符』と『利益の最大化』を。</p>
-    </div>
-    """, unsafe_allow_html=True)
+# --- 2. 導入 ---
+st.title("🛡️ ABテスト軍師")
+st.subheader("そのテスト、いつまで続けますか？")
+st.write("複雑な統計学は不要です。データを入れれば「継続か、停止か」を軍師が断定します。")
 
-# --- 3. 入力エリア ---
-st.markdown("### 📊 Test Parameters")
-with st.container():
-    col1, col2, col3 = st.columns([1, 1, 1])
+# --- 3. 入力エリア（項目名をわかりやすく） ---
+with st.expander("💰 利益の設定（ここを入れると「損した金額」がわかります）", expanded=True):
+    col1, col2 = st.columns(2)
     with col1:
-        profit_per_cv = st.number_input("CV1件あたりの利益 (¥)", value=50000, step=1000)
+        profit_per_cv = st.number_input("商品1つ売れた時の利益 (円)", value=10000)
     with col2:
-        monthly_budget = st.number_input("月間運用予算 (¥)", value=1000000, step=10000)
-    with col3:
-        n_variants = st.select_slider("比較案数", options=[2, 3, 4, 5], value=2)
+        monthly_budget = st.number_input("この広告の月間予算 (円)", value=500000)
 
-st.markdown("---")
-
-# 入力グリッド
+st.markdown("### 📈 今のテスト結果を入れてください")
 input_data = []
+n_variants = st.radio("比較している案の数", [2, 3], horizontal=True)
+
 cols = st.columns(n_variants)
 for i, col in enumerate(cols):
     with col:
-        st.markdown(f"#### Variant {chr(65+i)}")
-        cl = st.number_input(f"Clicks", value=1500, key=f"cl_{i}")
-        cv = st.number_input(f"CVs", value=30, key=f"cv_{i}")
-        cpc = st.number_input(f"CPC (¥)", value=120, key=f"cpc_{i}")
-        input_data.append({"name": f"Variant {chr(65+i)}", "clicks": cl, "cvs": cv, "cpc": cpc})
+        st.markdown(f"**案 {chr(65+i)}**")
+        cl = st.number_input(f"見た人数(クリック)", value=1000 + i*100, key=f"cl_{i}")
+        cv = st.number_input(f"獲得数(CV)", value=20 + i*5, key=f"cv_{i}")
+        input_data.append({"name": f"案 {chr(65+i)}", "clicks": cl, "cvs": cv})
 
-# --- 4. 解析アクション ---
-if st.button("RUN ANALYSIS - 軍師の診断を開始"):
-    with st.spinner('🔮 クリエイティブの深層心理と統計データを照合中...'):
-        time.sleep(2) # 演出用の待ち時間
+# --- 4. 解析 ---
+if st.button("軍師に判断を仰ぐ"):
+    with st.spinner('軍師がデータを精査中...'):
+        time.sleep(1.5)
         
-        # --- (計算ロジック) ---
+        # 計算
         names = [d["name"] for d in input_data]
         clicks = np.array([d["clicks"] for d in input_data])
-        conversions = np.array([d["cvs"] for d in input_data])
-        cpcs = np.array([d["cpc"] for d in input_data])
-        cvrs = conversions / np.where(clicks == 0, 1, clicks)
+        cvs = np.array([d["cvs"] for d in input_data])
+        cvrs = (cvs / clicks) * 100
         
-        # 簡易ベイズシミュレーション
+        # ベイズによる勝率計算
         samples = 20000
-        sim_cvrs = np.array([stats.beta(1+c, 1+cl-c).rvs(samples) for c, cl in zip(conversions, clicks)])
-        sim_profits = (sim_cvrs * profit_per_cv) - cpcs[:, np.newaxis]
+        sim_cvrs = np.array([stats.beta(1+c, 1+cl-c).rvs(samples) for c, cl in zip(cvs, clicks)])
+        win_rates = [np.mean(np.argmax(sim_cvrs, axis=0) == i) for i in range(n_variants)]
+        best_idx = np.argmax(win_rates)
         
-        current_best_idx = np.argmax(cvrs)
-        best_indices = np.argmax(sim_profits, axis=0)
-        probs_best = [np.mean(best_indices == i) for i in range(n_variants)]
+        # リスク計算（損失額）
+        max_sim_cvrs = np.max(sim_cvrs, axis=0)
+        loss_per_click = np.mean(max_sim_cvrs - sim_cvrs[best_idx])
+        monthly_loss = loss_per_click * monthly_budget / 100 # 概算
         
-        # 損失リスク計算
-        max_profits = np.max(sim_profits, axis=0)
-        risk_per_click = np.mean(np.maximum(max_profits - sim_profits[current_best_idx], 0))
-        monthly_risk_yen = risk_per_click * (monthly_budget / cpcs[current_best_idx])
+        # 判定メッセージ
+        st.divider()
+        if win_rates[best_idx] > 0.95:
+            st.markdown(f'<div class="decision-card status-go"><h2>【即停止】勝負あり</h2><p><b>{names[best_idx]}</b> の勝利はほぼ間違いありません。他の案を止めて予算を集中させてください。</p></div>', unsafe_allow_html=True)
+        elif win_rates[best_idx] > 0.75:
+            st.markdown(f'<div class="decision-card status-wait"><h2>【継続】まだ差が不十分</h2><p><b>{names[best_idx]}</b> が優勢ですが、偶然の可能性があります。あと少しデータを溜めましょう。</p></div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="decision-card status-stop"><h2>【再考】どんぐりの背比べ</h2><p>どちらも決め手に欠けます。デザインのコンセプトを根本から変えた新案の投入を推奨します。</p></div>', unsafe_allow_html=True)
 
-        # --- 5. 結果表示（高級カード） ---
-        st.markdown(f"""
-            <div class="result-card">
-                <h2 style="margin-top:0;">🛡️ 分析結果レポート</h2>
-                <p style="font-size: 1.1em; color: #4b5563;">現在の勝利案： <b>{names[current_best_idx]}</b></p>
-                <hr>
-                <div style="display: flex; justify-content: space-around; text-align: center;">
-                    <div>
-                        <p style="color: #6b7280; margin-bottom:0;">統計的勝率</p>
-                        <h1 style="color: #2563eb;">{probs_best[current_best_idx]:.1%}</h1>
-                    </div>
-                    <div style="border-left: 1px solid #e5e7eb; padding-left: 40px;">
-                        <p style="color: #ef4444; margin-bottom:0;">月間損失リスク</p>
-                        <h1 style="color: #ef4444;">¥{int(monthly_risk_yen):,}</h1>
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # --- 5. グラフ（わかりやすい比較棒グラフ） ---
+        st.markdown("### 📊 獲得効率の比較")
+        fig, ax = plt.subplots(figsize=(8, 4))
+        # 日本語フォント問題を避けるため名前を Variant に
+        v_names = [f"Variant {names[i]}" for i in range(n_variants)]
+        bars = ax.bar(v_names, cvrs, color=['#94a3b8', '#3b82f6', '#10b981'][:n_variants])
+        ax.set_ylabel("獲得率 (CVR %)")
+        ax.set_title("どちらが効率よく獲得できているか")
+        
+        # 勝率をテキストで載せる
+        for i, bar in enumerate(bars):
+            ax.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f'確信度:{win_rates[i]:.0%}', 
+                    ha='center', va='bottom', fontsize=12, fontweight='bold')
+        st.pyplot(fig)
 
-        # グラフ
-        col_graph, col_spacer = st.columns([2, 1])
-        with col_graph:
-            fig, ax = plt.subplots(figsize=(10, 5), facecolor='#ffffff')
-            for i in range(n_variants):
-                ax.hist(sim_cvrs[i], bins=50, alpha=0.6, label=f"{names[i]}", color=['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'][i])
-            ax.set_title("Conversion Rate Probability Distribution", fontsize=12)
-            ax.legend()
-            st.pyplot(fig)
+        # --- 6. お金の話（一番伝わる） ---
+        st.warning(f"💡 もし今すぐ勝利案に切り替えれば、月間でおよそ **¥{int(monthly_loss * profit_per_cv / 100):,}** の利益改善が見込めます。")
 
-        # 6. リード獲得エリア
+        # リード誘導
         st.markdown("---")
-        st.markdown("### 🔒 Deep Analysis Report")
-        with st.container():
-            l_col, r_col = st.columns([1, 1])
-            with l_col:
-                st.write("**軍師の深層レポートが生成されました**")
-                st.write("・この結果から読み取れるターゲットの心理的バイアス")
-                st.write("・デザイン要素（色・構図・コピー）の具体的な修正案")
-                st.write("・次回のテストで狙うべき『勝ち筋』の言語化")
-            with r_col:
-                with st.form("lead_form"):
-                    email = st.text_input("Report Delivery Email", placeholder="email@example.com")
-                    company = st.text_input("Company Name")
-                    st.form_submit_button("GET FULL REPORT")
-
-st.markdown("<p style='text-align: center; color: #6b7280; margin-top: 50px;'>© Air Design - Scientific Design for High-Growth Brands</p>", unsafe_allow_html=True)
+        st.markdown("### 🛡️ 軍師の深層レポートを受け取りますか？")
+        st.write("「なぜこの差が出たのか？」「次はどういうデザインにすべきか？」を、Air Designのプロが分析してお送りします。")
+        with st.form("lead"):
+            st.text_input("メールアドレス")
+            st.form_submit_button("無料レポートを申し込む")
