@@ -1,4 +1,4 @@
 streamlit
 scipy
-japanize-matplotlib
 requests
+matplotlib
